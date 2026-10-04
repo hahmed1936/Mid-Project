@@ -27,7 +27,6 @@ MUTED = "#5b636e"
 SATISFACTION_COLORS = {"Satisfied": SKY, "Neutral or Dissatisfied": ORANGE}
 CLASS_COLORS = {"Economy": ORANGE, "Economy Plus": YELLOW, "Business": SKY}
 TRAVEL_COLORS = {"Business Travel": SKY, "Personal Travel": PINK}
-CUSTOMER_COLORS = {"Loyal Customer": AQUA, "Disloyal Customer": VIOLET}
 GENDER_COLORS = {"Female": PINK, "Male": SKY}
 SEQUENTIAL_SCALE = ["#fde7dc", "#f6b89c", "#c9d8ee", "#6fa3e3", SKY, "#123f7a"]
 
@@ -145,12 +144,27 @@ def satisfaction_rate_by(df, columns):
     return table
 
 
-def as_text(df):
-    """Copy with categorical columns as plain text plus a count column (needed by sunburst / treemap)."""
-    out = df.assign(passengers=1)
-    for column in CATEGORY_ORDERS:
-        out[column] = out[column].astype(str)
-    return out
+def satisfaction_count_bars(df, column, title):
+    """Stacked bars of satisfied / dissatisfied passengers per group, with the satisfaction % above each bar."""
+    counts = pd.crosstab(df[column], df["satisfaction"]).reindex(columns=CATEGORY_ORDERS["satisfaction"],
+                                                                  fill_value=0)
+    counts = counts[counts.sum(axis=1) > 0]
+    labels = [str(i).replace(" (", "<br>(") for i in counts.index]
+    fig = go.Figure()
+    for group in CATEGORY_ORDERS["satisfaction"]:
+        fig.add_trace(go.Bar(x=labels, y=counts[group], name=group, marker_color=SATISFACTION_COLORS[group],
+                             marker_line=dict(color="white", width=1.5), text=counts[group],
+                             texttemplate="%{text:,}", textposition="inside", insidetextfont=dict(color="white"),
+                             hovertemplate="%{x}<br>" + group + ": %{y:,}<extra></extra>"))
+    totals = counts.sum(axis=1)
+    rates = counts["Satisfied"] / totals * 100
+    for label, total, rate in zip(labels, totals, rates):
+        fig.add_annotation(x=label, y=total, text=f"<b>{rate:.0f}%</b> satisfied", showarrow=False, yshift=12,
+                           font=dict(size=12, color=NAVY))
+    fig.update_layout(title=title, barmode="stack", height=380, yaxis=dict(title="Passengers",
+                      range=[0, totals.max() * 1.15]), xaxis=dict(title="", tickangle=0),
+                      legend=dict(traceorder="normal"), uniformtext=dict(minsize=10, mode="hide"))
+    return fig
 
 
 def kpi_card(column, icon, value, label, color, delta=None):
@@ -209,9 +223,6 @@ def stacked_satisfaction_bar(df, column, colors=None):
 
 # ---------------------------------------------------------------- sidebar: navigation + filters
 st.sidebar.markdown("## ✈️ Airline Insights")
-page = st.sidebar.radio("Navigate", ["🏠 Overview", "👥 Customers", "⭐ Services", "🛫 Flights & Delays",
-                                     "🧹 Data Quality", "💡 Insights & Actions", "🔎 Data Explorer"])
-st.sidebar.markdown("---")
 st.sidebar.markdown("### 🎛️ Filters")
 
 
@@ -261,8 +272,12 @@ kpi_card(kpi_columns[4], "🛫", f"{filtered_df['flight_distance'].median():,.0f
          ORANGE)
 st.write("")
 
+(tab_overview, tab_customers, tab_services, tab_flights, tab_quality, tab_insights, tab_explorer) = st.tabs(
+    ["🏠 Overview", "👥 Customers", "⭐ Services", "🛫 Flights & Delays", "🧹 Data Quality", "💡 Insights & Actions",
+     "🔎 Data Explorer"])
+
 # ================================================================ OVERVIEW
-if page == "🏠 Overview":
+with tab_overview:
     left, middle, right = st.columns([1.1, 1.3, 1.3])
     with left:
         counts = filtered_df["satisfaction"].value_counts().reindex(CATEGORY_ORDERS["satisfaction"])
@@ -274,24 +289,10 @@ if page == "🏠 Overview":
         fig.update_layout(title="Overall satisfaction", height=380)
         st.plotly_chart(fig, width="stretch")
     with middle:
-        fig = px.sunburst(as_text(filtered_df), path=["class", "type_of_travel", "satisfaction"],
-                          values="passengers", color="satisfaction",
-                          color_discrete_map={**SATISFACTION_COLORS, "(?)": "#c9d8ee"})
-        fig.update_traces(insidetextorientation="radial", marker=dict(line=dict(color="white", width=1.5)),
-                          hovertemplate="<b>%{label}</b><br>%{value:,} passengers<br>%{percentParent:.1%} of parent")
-        fig.update_layout(title="Class → Travel → Satisfaction", height=380)
-        st.plotly_chart(fig, width="stretch")
-        st.caption("💡 Click a segment to zoom in, click the centre to zoom out")
+        st.plotly_chart(satisfaction_count_bars(filtered_df, "class", "Passengers per class"), width="stretch")
     with right:
-        fig = px.treemap(as_text(filtered_df), path=[px.Constant("All passengers"), "customer_type",
-                                                                   "age_group"],
-                         values="passengers", color="is_satisfied", color_continuous_scale=SEQUENTIAL_SCALE,
-                         range_color=[0, 1])
-        fig.update_traces(hovertemplate="<b>%{label}</b><br>%{value:,} passengers<br>Satisfied: %{color:.1%}",
-                          texttemplate="<b>%{label}</b><br>%{value:,}", marker=dict(line=dict(color="white", width=2)))
-        fig.update_layout(title="Passenger mix (colour = % satisfied)", height=380,
-                          coloraxis_colorbar=dict(title="Satisfied", tickformat=".0%"))
-        st.plotly_chart(fig, width="stretch")
+        st.plotly_chart(satisfaction_count_bars(filtered_df, "age_group", "Passengers per age group"),
+                        width="stretch")
 
     section("🎯 Satisfaction gauges by segment", "The dark marker shows the overall average (43.9 %)")
     gauge_columns = st.columns(4)
@@ -306,32 +307,28 @@ if page == "🏠 Overview":
         else:
             column.plotly_chart(gauge(subset["is_satisfied"].mean() * 100, title, color), width="stretch")
 
-    section("🔀 The passenger journey", "How passengers flow from loyalty → travel purpose → class → satisfaction")
-    stages = ["customer_type", "type_of_travel", "class", "satisfaction"]
-    node_labels = [label for stage in stages for label in CATEGORY_ORDERS[stage]]
-    node_index = {(stage, label): i for i, (stage, label) in
-                  enumerate((stage, label) for stage in stages for label in CATEGORY_ORDERS[stage])}
-    node_colors = [CUSTOMER_COLORS.get(l) or TRAVEL_COLORS.get(l) or CLASS_COLORS.get(l)
-                   or SATISFACTION_COLORS.get(l) for l in node_labels]
-    sources, targets, values, link_colors = [], [], [], []
-    for a, b in zip(stages[:-1], stages[1:]):
-        flows = filtered_df.groupby([a, b], observed=True).size().reset_index(name="n")
-        for _, row in flows.iterrows():
-            sources.append(node_index[(a, row[a])])
-            targets.append(node_index[(b, row[b])])
-            values.append(row["n"])
-            link_colors.append("rgba(42,120,214,0.25)" if row[b] == "Satisfied" else
-                               "rgba(235,104,52,0.25)" if row[b] == "Neutral or Dissatisfied" else
-                               "rgba(150,165,185,0.25)")
-    fig = go.Figure(go.Sankey(
-        node=dict(label=node_labels, color=node_colors, pad=22, thickness=22, line=dict(color="white", width=1)),
-        link=dict(source=sources, target=targets, value=values, color=link_colors,
-                  hovertemplate="%{source.label} → %{target.label}<br>%{value:,} passengers<extra></extra>")))
-    fig.update_layout(height=460, font=dict(size=13))
+    section("🧭 Which passenger profiles are happiest?",
+            "Each bar is one profile (loyalty + travel purpose + class). Blue = above the average, orange = below")
+    profiles = satisfaction_rate_by(filtered_df, ["customer_type", "type_of_travel", "class"])
+    profiles = profiles[profiles["passengers"] >= 30].sort_values("satisfaction_rate")
+    profiles["profile"] = (profiles["customer_type"].astype(str).str.replace(" Customer", "") + " · "
+                           + profiles["type_of_travel"].astype(str) + " · " + profiles["class"].astype(str))
+    fig = go.Figure(go.Bar(
+        x=profiles["satisfaction_rate"], y=profiles["profile"], orientation="h",
+        marker=dict(color=[SKY if r >= OVERALL_RATE else ORANGE for r in profiles["satisfaction_rate"]],
+                    line=dict(color="white", width=1.5)),
+        text=[f"<b>{r:.0f}%</b>  ·  {n:,} passengers" for r, n in zip(profiles["satisfaction_rate"],
+                                                                       profiles["passengers"])],
+        textposition="outside", cliponaxis=False,
+        hovertemplate="<b>%{y}</b><br>%{x:.1f}% satisfied<extra></extra>"))
+    fig.add_vline(x=OVERALL_RATE, line_dash="dash", line_color=NAVY,
+                  annotation_text=f"average {OVERALL_RATE:.1f}%", annotation_position="top")
+    fig.update_layout(height=max(320, 42 * len(profiles)), xaxis=dict(range=[0, 115], ticksuffix="%",
+                      title="Satisfied passengers (%)"), yaxis_title="", margin=dict(l=10, r=40, t=40, b=10))
     st.plotly_chart(fig, width="stretch")
 
 # ================================================================ CUSTOMERS
-elif page == "👥 Customers":
+with tab_customers:
     section("🧑‍🤝‍🧑 Customer personas", "Satisfaction rate of the four main passenger types")
     personas = [
         ("💼", "The Business Flyer", "Business travel · Business class",
@@ -408,7 +405,7 @@ elif page == "👥 Customers":
     st.plotly_chart(fig, width="stretch")
 
 # ================================================================ SERVICES
-elif page == "⭐ Services":
+with tab_services:
     means = filtered_df.groupby("satisfaction", observed=True)[SERVICE_COLUMNS].mean().T
     means = means.reindex(columns=CATEGORY_ORDERS["satisfaction"])
     means["gap"] = means["Satisfied"] - means["Neutral or Dissatisfied"]
@@ -482,7 +479,7 @@ elif page == "⭐ Services":
     st.plotly_chart(fig, width="stretch")
 
 # ================================================================ FLIGHTS & DELAYS
-elif page == "🛫 Flights & Delays":
+with tab_flights:
     left, right = st.columns(2)
     with left:
         delay_rate = satisfaction_rate_by(filtered_df, "delay_group")
@@ -544,7 +541,7 @@ elif page == "🛫 Flights & Delays":
     st.plotly_chart(fig, width="stretch")
 
 # ================================================================ DATA QUALITY
-elif page == "🧹 Data Quality":
+with tab_quality:
     raw_service_columns = list(raw_df.loc[:, "Inflight wifi service":"Cleanliness"].columns)
     zero_ratings = int((raw_df[raw_service_columns] == 0).sum().sum())
     issue_columns = st.columns(4)
@@ -595,7 +592,7 @@ elif page == "🧹 Data Quality":
     st.dataframe(label_examples, hide_index=True, width="stretch")
 
 # ================================================================ INSIGHTS
-elif page == "💡 Insights & Actions":
+with tab_insights:
     section("💡 Key insights", "What the data tells us")
     insight_columns = st.columns(3)
     with insight_columns[0]:
@@ -635,7 +632,7 @@ elif page == "💡 Insights & Actions":
                             <div class="label">{text}</div></div>""", unsafe_allow_html=True)
 
 # ================================================================ DATA EXPLORER
-elif page == "🔎 Data Explorer":
+with tab_explorer:
     section("🔎 Build your own chart", "Pick any two variables")
     numeric_columns = ["age", "flight_distance", "departure_delay", "arrival_delay", "average_service_rating"]
     categorical_columns = ["class", "type_of_travel", "customer_type", "gender", "age_group", "distance_group",
