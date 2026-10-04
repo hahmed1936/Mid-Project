@@ -22,7 +22,9 @@ Built as the Mid Project of the **Epsilon AI** Data Science program.
 | `app.py` | Interactive Streamlit dashboard (7 tabs, 30+ charts: satisfaction bars, gauges, passenger-profile ranking, radar, animated bars, heatmaps) |
 | `.streamlit/config.toml` | Dashboard theme |
 | `requirements.txt` | Packages needed to run the dashboard |
-| `Airline_Satisfaction_Presentation.pptx` | Discussion presentation |
+| `Airline_Satisfaction_Presentation.pptx` | Discussion presentation (English) |
+| `Airline_Satisfaction_Video_AR.pptx` | Arabic slides used in the code-walkthrough video |
+| `build_presentation.py`, `build_presentation_ar.py` | Scripts that generate the two presentations |
 | `Mid-Project (Criteria).pdf`, `Mid-Project (Criteria)2.txt` | Project requirements |
 
 ## ❓ Research questions
