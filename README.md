@@ -19,7 +19,8 @@ Built as the Mid Project of the **Epsilon AI** Data Science program.
 | `Data.csv` | Raw dataset (25,976 passengers × 25 columns) |
 | `Data_Cleaned.csv` | Cleaned dataset produced by the notebook (used by the dashboard) |
 | `Mid-Project-Script.ipynb` | Full analysis: assessment, cleaning, univariate, bivariate & multivariate analysis, conclusions |
-| `app.py` | Streamlit dashboard |
+| `app.py` | Interactive Streamlit dashboard (7 pages, 30+ charts: sunburst, Sankey journey, gauges, radar, treemap, animated bars, heatmaps) |
+| `.streamlit/config.toml` | Dashboard theme |
 | `requirements.txt` | Packages needed to run the dashboard |
 | `Airline_Satisfaction_Presentation.pptx` | Discussion presentation |
 | `Mid-Project (Criteria).pdf`, `Mid-Project (Criteria)2.txt` | Project requirements |
