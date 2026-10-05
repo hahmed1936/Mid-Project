@@ -23,10 +23,6 @@ Built as the Mid Project of the **Epsilon AI** Data Science program.
 | `.streamlit/config.toml` | Dashboard theme |
 | `requirements.txt` | Packages needed to run the dashboard |
 | `Airline_Satisfaction_Presentation.pptx` | Discussion presentation (English) |
-| `Airline_Satisfaction_Video_AR.pptx` | Arabic slides used in the code-walkthrough video |
-| `Airline_Satisfaction_Presentation_AR.pptx` | Arabic translation of the discussion presentation (same slides) |
-| `Airline_Satisfaction_Code_Walkthrough_AR.pptx` | Arabic walkthrough of every notebook code cell (what it does and why), for the video |
-| `build_presentation*.py`, `build_code_walkthrough_ar.py`, `pptx_ar_utils.py` | Scripts that generate the presentations |
 | `Mid-Project (Criteria).pdf`, `Mid-Project (Criteria)2.txt` | Project requirements |
 
 ## ❓ Research questions
