@@ -23,7 +23,6 @@ Built as the Mid Project of the **Epsilon AI** Data Science program.
 | `.streamlit/config.toml` | Dashboard theme |
 | `requirements.txt` | Packages needed to run the dashboard |
 | `Airline_Satisfaction_Presentation.pptx` | Discussion presentation (English) |
-| `Mid-Project (Criteria).pdf`, `Mid-Project (Criteria)2.txt` | Project requirements |
 
 ## ❓ Research questions
 1. What share of passengers are satisfied?

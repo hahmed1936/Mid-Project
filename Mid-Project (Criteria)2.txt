@@ -1,8 +1,0 @@
-
-1- جيت هاب Repo عليه الداتا و النوتبوك و كل حاجة استخدمتها في المشروع و تضيف اللينك لل google sheet
-2- لينك Public ل Streamlit و تضيف اللينك لل google sheet
-3- فيديو من 5 - 10 دقائق بيتشرح فيه جزء ال Code باستثناء كود streamlit  و تضيف اللينك لل google sheet
-4- تجهيز PowerPoint للمناقشة  و تضيف اللينك لل google sheet
-
-بالنسبة لل presentation لازم تشرح فيها ال Domain بتاع ال data و ال columns بتمثل ايه و ايه المشاكل اللي في الداتا لو فيها مشاكل و ايه أهم ال Insights اللي طلعتها من الداتا و Conclusion اخير عن المشروع ككل.
-المناقشة هتكون من ال Presentation و Streamlit فقط و ليس الكود.
